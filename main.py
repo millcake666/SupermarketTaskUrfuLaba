@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, \
-    QInputDialog, QDialog, QTextEdit, QMessageBox, QFormLayout, QLineEdit
+    QInputDialog, QDialog, QTextEdit, QMessageBox, QFormLayout
 
 
 class ResultDialog(QDialog):
@@ -76,8 +76,8 @@ class SpeedInputDialog(QDialog):
 
         form_layout = QFormLayout(self)
 
-        self.setup_speed_input(form_layout, 'Скорость обслуживания (чел/мин):')
-        self.setup_speed_input(form_layout, 'Погрешность (чел/мин):')
+        self.setup_speed_input(form_layout, 'Скорость обслуживания (чел/час):')
+        self.setup_speed_input(form_layout, 'Погрешность (чел/час):')
 
         submit_button = QPushButton('Применить', self)
         submit_button.clicked.connect(self.accept)
@@ -91,8 +91,7 @@ class SpeedInputDialog(QDialog):
             if 'Погрешность' in label_text:
                 setattr(self, 'error_value', value)  # Set the error_value attribute
 
-            layout.addRow(f'{label_text}', QLabel(f'{value} чел/мин)'))
-
+            layout.addRow(f'{label_text}', QLabel(f'{value} чел/час)'))
 
 
 class MainWindow(QWidget):
@@ -103,7 +102,7 @@ class MainWindow(QWidget):
 
     def init_ui(self):
         self.setWindowTitle('Ввод данных для супермаркетов')
-        self.setGeometry(100, 100, 600, 400)
+        self.setGeometry(100, 100, 770, 620)
 
         self.label_basket = QLabel('Средняя потребительская корзина:')
         self.table_basket = QTableWidget(self)
@@ -118,8 +117,7 @@ class MainWindow(QWidget):
         self.button_intensity = QPushButton('Настроить', self)
         self.button_intensity.clicked.connect(self.get_intensity)
 
-        self.label_speed = QLabel('Скорость обслуживания на 1 кассе (чел/мин):')
-        self.speed_input = 60
+        self.label_speed = QLabel('Скорость обслуживания на 1 кассе (чел/час):')
         self.button_speed = QPushButton('Настроить', self)
         self.button_speed.clicked.connect(self.get_speed)
 
@@ -145,18 +143,18 @@ class MainWindow(QWidget):
     def fill_default_basket_data(self):
         # Заполняем таблицу средней покупательской способности данными по умолчанию
         default_data = [
-            [0.5, 0.3, 1, 1, 1, 0.2, 1],
-            [0.5, 0.3, 1, 1, 1, 0.2, 1],
-            [0.5, 0.3, 1, 1, 1, 0.2, 1],
-            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
-            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
-            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
-            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
-            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
-            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
-            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
-            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
-            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
+            [0.5, 0.2, 1.5, 1.9, 1.4, 4.2, 1],
+            [1.3, 0.9, 1.2, 3.2, 1.2, 1.2, 2],
+            [4, 0.3, 1, 1, 2.1, 3.2, 1],
+            [1, 1, 1.9, 0.4, 3.2, 0.4, 0.3],
+            [2.1, 1.1, 3.3, 4.2, 1, 1.4, 2.3],
+            [2.2, 2.2, 2.2, 2.1, 3.1, 0.4, 1.3],
+            [0.4, 3.3, 1.1, 1.4, 2.5, 0.2, 0.3],
+            [0.4, 0.7, 2.5, 1.3, 1.7, 1.5, 0.8],
+            [0.9, 0.5, 1.5, 2.5, 1.5, 0.6, 0.2],
+            [1.7, 1.7, 3.1, 0.5, 2, 0.2, 2],
+            [2.7, 1.3, 1, 2.2, 3, 0.7, 1.5],
+            [1.3, 2.3, 2, 2.8, 0.5, 0.9, 0.2],
         ]
 
         for row, data_row in enumerate(default_data):
@@ -201,7 +199,7 @@ class MainWindow(QWidget):
             'day': {'intensity': self.intensity_day, 'error': self.error_day},
             'evening': {'intensity': self.intensity_evening, 'error': self.error_evening}
         }
-        speed_data = {'speed_value': self.speed_input, 'error_value': self.error_value}
+        speed_data = {'speed_value': self.speed_value, 'error_value': self.error_value}
 
         # Проверяем, что все ячейки таблицы были заполнены
         if any('' in row for row in basket_data):
@@ -248,11 +246,29 @@ class MainWindow(QWidget):
 
     def format_delivery_data(self, delivery_data):
         # Пример форматирования данных о поставках для вывода в виде таблицы
-        formatted_data = "Дата\t\tВид товара\t\tМагазин\t\tОбъем\n"
+        formatted_data = "Месяц\tВид товара\tМагазин\tОбъем\n"
+
+        # Создаем словарь для суммирования данных по месяцам, видам товара и магазинам
+        monthly_data = {}
+
         for product_data in delivery_data:
             product = product_data["product"]
             for delivery in product_data["deliveries"]:
-                formatted_data += f"{delivery['date']}\t\t{product}\t\t\t{delivery['store']}\t\t\t{delivery['quantity']} ед.\n"
+                # Используем текущий месяц и следующий месяц
+                month = int(delivery['date'].split('.')[1])
+                next_month = month + 1 if month < 12 else 1
+
+                # Создаем уникальный ключ для каждого месяца, товара и магазина
+                key = f"{next_month}\t{product}\t{delivery['store']}"
+
+                # Суммируем объем по ключу
+                monthly_data[key] = monthly_data.get(key, 0) + delivery['quantity']
+
+        # Выводим результаты по месяцам, видам товара и магазинам
+        for key, quantity in monthly_data.items():
+            month, product, store = key.split("\t")
+            formatted_data += f"{month}\t{product}\t{store}\t{quantity} ед.\n"
+
         return formatted_data
 
     def format_cashiers_data(self, cashiers_data):
@@ -285,7 +301,7 @@ class MainWindow(QWidget):
                 # Учитываем скорость обслуживания на одной кассе и ее погрешность
                 quantity_per_day /= speed_data['speed_value']
                 quantity_per_day += quantity_per_day * (
-                            speed_data['error_value'] / 100)  # Переводим погрешность в десятичный формат
+                        speed_data['error_value'] / 100)  # Переводим погрешность в десятичный формат
 
                 delivery_row = {"product": product, "deliveries": []}
                 for day in range(1, 31):  # Здесь используется произвольное количество дней, замените на свою логику
