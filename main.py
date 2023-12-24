@@ -1,6 +1,25 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, \
-    QMessageBox, QInputDialog
+    QInputDialog, QDialog, QTextEdit, QMessageBox
+
+
+class ResultDialog(QDialog):
+    def __init__(self, result_text):
+        super().__init__()
+
+        self.result_text = result_text
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle('Результаты расчетов')
+        self.setGeometry(200, 200, 800, 600)
+
+        self.result_text_edit = QTextEdit(self)
+        self.result_text_edit.setPlainText(self.result_text)
+        self.result_text_edit.setReadOnly(True)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.result_text_edit)
 
 
 class MainWindow(QWidget):
@@ -83,7 +102,7 @@ class MainWindow(QWidget):
 
         # Проверяем, что все ячейки таблицы были заполнены
         if any('' in row for row in basket_data):
-            QMessageBox.warning(self, 'Ошибка', 'Заполните все ячейки в таблице.')
+            self.show_warning('Ошибка', 'Заполните все ячейки в таблице.')
             return
 
         # Здесь вы можете обработать введенные данные и выполнить расчеты
@@ -98,8 +117,13 @@ class MainWindow(QWidget):
         result_text += "\n\nРекомендуемое количество касс в каждом магазине:\n"
         result_text += self.format_cashiers_data(cashiers_data)
 
-        # Вывод результатов в диалоговом окне (замените на свой способ вывода результатов)
-        QMessageBox.information(self, 'Результаты расчетов', result_text)
+        # Открываем новое диалоговое окно для отображения результатов
+        result_dialog = ResultDialog(result_text)
+        result_dialog.exec_()
+
+    def show_warning(self, title, message):
+        # Вспомогательная функция для отображения предупреждения
+        QMessageBox.warning(self, title, message)
 
     def calculate_stock_recommendations(self, basket_data):
         # Пример расчета рекомендуемого объема складов и страхового запаса
