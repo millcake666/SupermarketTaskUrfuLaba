@@ -1,129 +1,154 @@
 import sys
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QLabel, QSpinBox, QPushButton, QHBoxLayout
-import random
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, \
+    QMessageBox, QInputDialog
 
 
-class StoreInterface(QMainWindow):
+class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Интерфейс магазина")
-        self.resize(400, 500)  # Установка размеров окна
-
-        # Переменные для хранения данных
-        self.basket_table = None
-        self.customer_intensity_morning_entry = None
-        self.customer_intensity_day_entry = None
-        self.customer_intensity_evening_entry = None
-        self.service_speed_entry = None
-        self.result_label = None
-
-        # Создание элементов интерфейса
         self.init_ui()
 
     def init_ui(self):
-        central_widget = QWidget(self)
-        self.setCentralWidget(central_widget)
+        self.setWindowTitle('Ввод данных для супермаркетов')
+        self.setGeometry(100, 100, 600, 400)
 
-        layout = QVBoxLayout()
+        self.label_basket = QLabel('Средняя потребительская корзина:')
+        self.table_basket = QTableWidget(self)
+        self.table_basket.setColumnCount(7)  # Убираем столбец "Количество"
+        self.table_basket.setHorizontalHeaderLabels(['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ж'])
+        self.table_basket.setRowCount(12)
 
-        # Создание таблицы для корзины
-        self.create_basket_table()
-        layout.addWidget(self.basket_table)
+        # Заполняем таблицу средней покупательской способности данными по умолчанию
+        self.fill_default_basket_data()
 
-        # Добавление полей ввода и кнопки
-        input_layout = QVBoxLayout()
+        self.label_intensity = QLabel('Интенсивность потока покупателей:')
+        self.button_intensity = QPushButton('Настроить', self)
+        self.button_intensity.clicked.connect(self.get_intensity)
 
-        # Утро
-        morning_layout = QHBoxLayout()
-        morning_label = QLabel("Кл./час утро")
-        morning_label.setAlignment(Qt.AlignLeft)  # Выравнивание к левому краю
-        morning_layout.addWidget(morning_label)
-        self.customer_intensity_morning_entry = QSpinBox(self)
-        self.customer_intensity_morning_entry.setRange(0, 999)
-        self.customer_intensity_morning_entry.setValue(100)
-        morning_layout.addWidget(self.customer_intensity_morning_entry)
-        input_layout.addLayout(morning_layout)
+        self.submit_button = QPushButton('Рассчитать', self)
+        self.submit_button.clicked.connect(self.calculate_recommendations)
 
-        # День
-        day_layout = QHBoxLayout()
-        day_label = QLabel("Кл./час день")
-        day_label.setAlignment(Qt.AlignLeft)  # Выравнивание к левому краю
-        day_layout.addWidget(day_label)
-        self.customer_intensity_day_entry = QSpinBox(self)
-        self.customer_intensity_day_entry.setRange(0, 999)
-        self.customer_intensity_day_entry.setValue(150)
-        day_layout.addWidget(self.customer_intensity_day_entry)
-        input_layout.addLayout(day_layout)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.label_basket)
+        layout.addWidget(self.table_basket)
+        layout.addWidget(self.label_intensity)
+        layout.addWidget(self.button_intensity)
+        layout.addWidget(self.submit_button)
 
-        # Вечер
-        evening_layout = QHBoxLayout()
-        evening_label = QLabel("Кл./час вечер")
-        evening_label.setAlignment(Qt.AlignLeft)  # Выравнивание к левому краю
-        evening_layout.addWidget(evening_label)
-        self.customer_intensity_evening_entry = QSpinBox(self)
-        self.customer_intensity_evening_entry.setRange(0, 999)
-        self.customer_intensity_evening_entry.setValue(450)
-        evening_layout.addWidget(self.customer_intensity_evening_entry)
-        input_layout.addLayout(evening_layout)
+        self.intensity_morning = 0
+        self.intensity_day = 0
+        self.intensity_evening = 0
 
-        # Общая скорость обслуживания
-        speed_layout = QHBoxLayout()
-        speed_label = QLabel("Скорость обслуживания клиентов")
-        speed_label.setAlignment(Qt.AlignLeft)  # Выравнивание к левому краю
-        speed_layout.addWidget(speed_label)
-        self.service_speed_entry = QSpinBox(self)
-        self.service_speed_entry.setRange(0, 999)
-        self.service_speed_entry.setValue(60)
-        speed_layout.addWidget(self.service_speed_entry)
-        input_layout.addLayout(speed_layout)
+    def fill_default_basket_data(self):
+        # Заполняем таблицу средней покупательской способности данными по умолчанию
+        default_data = [
+            [0.5, 0.3, 1, 1, 1, 0.2, 1],
+            [0.5, 0.3, 1, 1, 1, 0.2, 1],
+            [0.5, 0.3, 1, 1, 1, 0.2, 1],
+            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
+            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
+            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
+            [1, 1, 1.9, 0.4, 1, 0.4, 0.3],
+            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
+            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
+            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
+            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
+            [0.7, 0.7, 2.5, 1.5, 1, 0.5, 0.8],
+        ]
 
-        layout.addLayout(input_layout)
+        for row, data_row in enumerate(default_data):
+            for col, value in enumerate(data_row):
+                item = QTableWidgetItem(str(value))
+                self.table_basket.setItem(row, col, item)
 
-        calculate_button = QPushButton("Рассчитать", self)
-        calculate_button.clicked.connect(self.calculate)
-        layout.addWidget(calculate_button)
+    def get_intensity(self):
+        # Получаем интенсивность потока покупателей от пользователя (замените на ваш способ ввода данных)
+        # В данном примере используется простое диалоговое окно для ввода данных
+        morning, ok1 = QInputDialog.getInt(self, 'Интенсивность утро', 'С 8:00 до 13:00:', 100, 0, 999, 10)
+        day, ok2 = QInputDialog.getInt(self, 'Интенсивность день', 'С 13:00 до 17:00:', 150, 0, 999, 10)
+        evening, ok3 = QInputDialog.getInt(self, 'Интенсивность вечер', 'С 17:00 до 21:00:', 450, 0, 999, 10)
 
-        self.result_label = QLabel(self)
-        layout.addWidget(self.result_label)
+        if ok1 and ok2 and ok3:
+            self.intensity_morning = morning
+            self.intensity_day = day
+            self.intensity_evening = evening
 
-        central_widget.setLayout(layout)
+    def calculate_recommendations(self):
+        # Получаем данные о потребительской корзине
+        basket_data = []
+        for row in range(12):
+            row_data = [self.table_basket.item(row, col).text() if self.table_basket.item(row, col) else '' for col in range(7)]
+            basket_data.append(row_data)
 
-    def create_basket_table(self):
-        self.basket_table = QTableWidget(self)
-        self.basket_table.setColumnCount(2)
-        self.basket_table.setHorizontalHeaderLabels(["Товар", "Количество"])
+        # Проверяем, что все ячейки таблицы были заполнены
+        if any('' in row for row in basket_data):
+            QMessageBox.warning(self, 'Ошибка', 'Заполните все ячейки в таблице.')
+            return
 
-        # Пример заполнения таблицы начальными данными
-        initial_data = [("A", 0.5), ("B", 0.3), ("C", 1), ("D", 1), ("E", 0.2), ("F", 1), ("G", 1)]
-        self.basket_table.setRowCount(len(initial_data))
-        for row, data in enumerate(initial_data):
-            self.basket_table.setItem(row, 0, QTableWidgetItem(data[0]))
-            self.basket_table.setItem(row, 1, QTableWidgetItem(str(data[1])))
+        # Здесь вы можете обработать введенные данные и выполнить расчеты
+        stock_volume, optimal_stock_size = self.calculate_stock_recommendations(basket_data)
+        delivery_data = self.calculate_delivery_data(basket_data)
+        cashiers_data = self.calculate_cashiers_recommendations(basket_data)
 
-    def calculate(self):
-        # Получение данных из полей ввода
-        basket_data = [(self.basket_table.item(row, 0).text(), float(self.basket_table.item(row, 1).text()))
-                       for row in range(self.basket_table.rowCount())]
+        # Вывод результатов
+        result_text = f"Рекомендуемый объем складов и страховой запас: {stock_volume:.2f}, {optimal_stock_size:.2f}\n\n"
+        result_text += "График и объем поставок каждого вида товаров по сети:\n"
+        result_text += self.format_delivery_data(delivery_data)
+        result_text += "\n\nРекомендуемое количество касс в каждом магазине:\n"
+        result_text += self.format_cashiers_data(cashiers_data)
 
-        intensity_morning_data = self.customer_intensity_morning_entry.value()
-        intensity_day_data = self.customer_intensity_day_entry.value()
-        intensity_evening_data = self.customer_intensity_evening_entry.value()
-        speed_data = self.service_speed_entry.value()
+        # Вывод результатов в диалоговом окне (замените на свой способ вывода результатов)
+        QMessageBox.information(self, 'Результаты расчетов', result_text)
 
-        # Пример обработки данных
-        recommended_storage_volume = random.randint(1000, 2000)  # Замените на расчет по вашим формулам
-        recommended_reserve = random.randint(100, 200)  # Замените на расчет по вашим формулам
+    def calculate_stock_recommendations(self, basket_data):
+        # Пример расчета рекомендуемого объема складов и страхового запаса
+        # Здесь вы можете использовать ваши формулы и логику расчетов
+        stock_volume = 10000  # Замените на свой расчет
+        optimal_stock_size = 5000  # Замените на свой расчет
+        return stock_volume, optimal_stock_size
 
-        result_text = f"Рекомендуемый объем складов: {recommended_storage_volume} ед.\n"
-        result_text += f"Страховой запас: {recommended_reserve} ед."
+    def calculate_delivery_data(self, basket_data):
+        # Пример расчета графика и объема поставок каждого вида товаров по сети
+        # Здесь вы можете использовать ваши формулы и логику расчетов
+        delivery_data = [
+            {"product": "А", "deliveries": [{"date": "01.01.2023", "store": "Магазин 1", "quantity": 100},
+                                             {"date": "02.01.2023", "store": "Магазин 2", "quantity": 150}]},
+            {"product": "Б", "deliveries": [{"date": "01.01.2023", "store": "Магазин 1", "quantity": 50},
+                                             {"date": "02.01.2023", "store": "Магазин 2", "quantity": 75}]},
+            # Замените на свои расчеты
+        ]
+        return delivery_data
 
-        self.result_label.setText(result_text)
+    def calculate_cashiers_recommendations(self, basket_data):
+        # Пример расчета рекомендуемого количества касс в каждом магазине
+        # Здесь вы можете использовать ваши формулы и логику расчетов
+        cashiers_data = [
+            {"store": "Магазин 1", "cashiers": 5},
+            {"store": "Магазин 2", "cashiers": 8},
+            # Замените на свои расчеты
+        ]
+        return cashiers_data
+
+    def format_delivery_data(self, delivery_data):
+        # Пример форматирования данных о поставках для вывода в виде таблицы
+        formatted_data = "Дата\t\tВид товара\t\tМагазин\t\tОбъем\n"
+        for product_data in delivery_data:
+            product = product_data["product"]
+            for delivery in product_data["deliveries"]:
+                formatted_data += f"{delivery['date']}\t\t{product}\t\t\t{delivery['store']}\t\t\t{delivery['quantity']} ед.\n"
+        return formatted_data
+
+    def format_cashiers_data(self, cashiers_data):
+        # Пример форматирования данных о кассирах для вывода в виде таблицы
+        formatted_data = "Магазин\t\tКассиры\n"
+        for data in cashiers_data:
+            formatted_data += f"{data['store']}\t\t\t{data['cashiers']} касс\n"
+        return formatted_data
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = StoreInterface()
+    window = MainWindow()
     window.show()
     sys.exit(app.exec_())
