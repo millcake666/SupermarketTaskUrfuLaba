@@ -72,7 +72,7 @@ class SpeedInputDialog(QDialog):
         self.setGeometry(200, 200, 400, 200)
 
         self.speed_value = 60
-        self.error_value = 5  # Add this line to initialize error_value
+        self.error_value = 5
 
         form_layout = QFormLayout(self)
 
@@ -89,7 +89,7 @@ class SpeedInputDialog(QDialog):
         if ok:
             setattr(self, f'{label_text.lower().replace(" ", "_")}_value', value)
             if 'Погрешность' in label_text:
-                setattr(self, 'error_value', value)  # Set the error_value attribute
+                setattr(self, 'error_value', value)
 
             layout.addRow(f'{label_text}', QLabel(f'{value} чел/час)'))
 
@@ -106,7 +106,7 @@ class MainWindow(QWidget):
 
         self.label_basket = QLabel('Средняя потребительская корзина:')
         self.table_basket = QTableWidget(self)
-        self.table_basket.setColumnCount(7)  # Убираем столбец "Количество"
+        self.table_basket.setColumnCount(7)
         self.table_basket.setHorizontalHeaderLabels(['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ж'])
         self.table_basket.setRowCount(12)
 
@@ -163,7 +163,7 @@ class MainWindow(QWidget):
                 self.table_basket.setItem(row, col, item)
 
     def get_intensity(self):
-        # Получаем интенсивность потока покупателей от пользователя (замените на ваш способ ввода данных)
+        # Получаем интенсивность потока покупателей от пользователя
         # В данном примере используется простое диалоговое окно для ввода данных
         intensity_dialog = IntensityInputDialog()
         result = intensity_dialog.exec_()
@@ -265,14 +265,14 @@ class MainWindow(QWidget):
         return formatted_table
 
     def format_cashiers_data(self, cashiers_data):
-        # Пример форматирования данных о кассирах для вывода в виде таблицы
+        # форматирование данных о кассирах для вывода в виде таблицы
         formatted_data = "Магазин\t\tКассиры\n"
         for data in cashiers_data:
             formatted_data += f"{data['store']}\t\t\t{data['cashiers']} касс\n"
         return formatted_data
 
     def calculate_delivery_data(self, basket_data, intensity_data, speed_data):
-        # Пример расчета графика и объема поставок каждого вида товаров по сети
+        # расчет графика и объема поставок каждого вида товаров по сети
         delivery_data = []
 
         for store_number, row_data in enumerate(basket_data, 1):
@@ -312,7 +312,6 @@ class MainWindow(QWidget):
                 total_quantity_per_hour += float(quantity_per_customer) * intensity_values['intensity']
                 total_quantity_per_hour += float(quantity_per_customer) * intensity_values['error']
 
-            # Calculate the recommended number of cashiers based on the total quantity per hour and service speed
             recommended_cashiers = total_quantity_per_hour / speed_data['speed_value']
 
             cashiers_data.append({"store": f"Магазин {i}", "cashiers": round(recommended_cashiers)})
@@ -324,6 +323,7 @@ class MainWindow(QWidget):
         QMessageBox.warning(self, title, message)
 
 
+# запуск основной программы
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
