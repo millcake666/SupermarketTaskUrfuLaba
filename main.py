@@ -207,9 +207,9 @@ class MainWindow(QWidget):
             return
 
         # Здесь передаем данные из интерфейса в функции расчетов
-        stock_volume, optimal_stock_size = self.calculate_stock_recommendations(basket_data, intensity_data)
+        stock_volume, optimal_stock_size = self.calculate_stock_recommendations(basket_data, intensity_data, speed_data)
         delivery_data = self.calculate_delivery_data(basket_data, intensity_data, speed_data)
-        cashiers_data = self.calculate_cashiers_recommendations(basket_data, speed_data)
+        cashiers_data = self.calculate_cashiers_recommendations(basket_data, intensity_data, speed_data)
 
         # Вывод результатов
         result_text = f"Рекомендуемый объем складов и страховой запас: {stock_volume:.2f}, {optimal_stock_size:.2f}\n\n"
@@ -222,40 +222,47 @@ class MainWindow(QWidget):
         result_dialog = ResultDialog(result_text)
         result_dialog.exec_()
 
-    def calculate_stock_recommendations(self, basket_data, intensity_data):
-        # Пример расчета рекомендуемого объема складов и страхового запаса с учетом погрешности интенсивности
+    def calculate_stock_recommendations(self, basket_data, intensity_data, speed_data):
         total_demand = sum(float(cell) for row in basket_data for cell in row)
 
         total_intensity = (
-                intensity_data['morning']['intensity'] * 5 +  # утро состоит из 5 часов
-                intensity_data['day']['intensity'] * 4 +  # день состоит из 4 часов
-                intensity_data['evening']['intensity'] * 4  # вечер состоит из 4 часов
+                intensity_data['morning']['intensity'] * 5 +
+                intensity_data['day']['intensity'] * 4 +
+                intensity_data['evening']['intensity'] * 4
         )
 
-        total_error = (
+        total_error_intensity = (
                 intensity_data['morning']['error'] * 5 +
                 intensity_data['day']['error'] * 4 +
                 intensity_data['evening']['error'] * 4
         )
 
-        # Учитываем погрешность интенсивности при расчете страхового запаса
-        stock_volume = total_demand * (total_intensity + total_error)
-        optimal_stock_size = total_demand * (total_intensity - total_error) / 2
+        total_error_speed = speed_data['error_value'] / 100  # Convert error to decimal
+
+        adjusted_intensity = total_intensity + total_error_intensity
+
+        stock_volume = total_demand * adjusted_intensity * (1 + total_error_speed)
+        optimal_stock_size = total_demand * adjusted_intensity / 2
 
         return stock_volume, optimal_stock_size
 
     def format_delivery_data(self, delivery_data):
-        # Пример форматирования данных о поставках для вывода в виде таблицы
-        formatted_data = "Вид товара / Магазин / Объем\n"
+        formatted_data = "Вид товара \t Магазин \t\t Объем\n"
 
         for store_data in delivery_data:
             store_number = store_data["store_number"]
             for product_data in store_data["deliveries"]:
                 product = product_data["product"]
                 quantity_per_day = product_data["quantity_per_day"]
-                formatted_data += f"{product} / Магазин {store_number} / {quantity_per_day:.2f}\n"
+                formatted_data += f"{product} \t Магазин {store_number} \t\t {quantity_per_day:.2f}\n"
 
-        return formatted_data
+        # Convert the formatted data to a table
+        table_data = [line.split('/') for line in formatted_data.strip().split('\n')]
+        max_lengths = [max(len(cell.strip()) for cell in row) for row in zip(*table_data)]
+        formatted_table = '\n'.join(
+            '|'.join(cell.strip().ljust(length) for cell, length in zip(row, max_lengths)) for row in table_data)
+
+        return formatted_table
 
     def format_cashiers_data(self, cashiers_data):
         # Пример форматирования данных о кассирах для вывода в виде таблицы
@@ -295,12 +302,20 @@ class MainWindow(QWidget):
 
         return delivery_data
 
-    def calculate_cashiers_recommendations(self, basket_data, speed_data):
-        # Пример расчета рекомендуемого количества касс в каждом магазине
-        # Здесь вы можете использовать ваши формулы и логику расчетов
-        cashiers_data = [
-            {"store": f"Магазин {i}", "cashiers": round(sum(float(cell) for cell in row) / speed_data['speed_value'])}
-            for i, row in enumerate(basket_data, 1)]
+    def calculate_cashiers_recommendations(self, basket_data, intensity_data, speed_data):
+        cashiers_data = []
+
+        for i, row_data in enumerate(basket_data, 1):
+            total_quantity_per_hour = 0
+
+            for quantity_per_customer, intensity_values in zip(row_data, intensity_data.values()):
+                total_quantity_per_hour += float(quantity_per_customer) * intensity_values['intensity']
+                total_quantity_per_hour += float(quantity_per_customer) * intensity_values['error']
+
+            # Calculate the recommended number of cashiers based on the total quantity per hour and service speed
+            recommended_cashiers = total_quantity_per_hour / speed_data['speed_value']
+
+            cashiers_data.append({"store": f"Магазин {i}", "cashiers": round(recommended_cashiers)})
 
         return cashiers_data
 
