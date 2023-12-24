@@ -246,28 +246,14 @@ class MainWindow(QWidget):
 
     def format_delivery_data(self, delivery_data):
         # Пример форматирования данных о поставках для вывода в виде таблицы
-        formatted_data = "Месяц\tВид товара\tМагазин\tОбъем\n"
+        formatted_data = "Вид товара / Магазин / Объем\n"
 
-        # Создаем словарь для суммирования данных по месяцам, видам товара и магазинам
-        monthly_data = {}
-
-        for product_data in delivery_data:
-            product = product_data["product"]
-            for delivery in product_data["deliveries"]:
-                # Используем текущий месяц и следующий месяц
-                month = int(delivery['date'].split('.')[1])
-                next_month = month + 1 if month < 12 else 1
-
-                # Создаем уникальный ключ для каждого месяца, товара и магазина
-                key = f"{next_month}\t{product}\t{delivery['store']}"
-
-                # Суммируем объем по ключу
-                monthly_data[key] = monthly_data.get(key, 0) + delivery['quantity']
-
-        # Выводим результаты по месяцам, видам товара и магазинам
-        for key, quantity in monthly_data.items():
-            month, product, store = key.split("\t")
-            formatted_data += f"{month}\t{product}\t{store}\t{quantity} ед.\n"
+        for store_data in delivery_data:
+            store_number = store_data["store_number"]
+            for product_data in store_data["deliveries"]:
+                product = product_data["product"]
+                quantity_per_day = product_data["quantity_per_day"]
+                formatted_data += f"{product} / Магазин {store_number} / {quantity_per_day:.2f}\n"
 
         return formatted_data
 
@@ -303,14 +289,9 @@ class MainWindow(QWidget):
                 quantity_per_day += quantity_per_day * (
                         speed_data['error_value'] / 100)  # Переводим погрешность в десятичный формат
 
-                delivery_row = {"product": product, "deliveries": []}
-                for day in range(1, 31):  # Здесь используется произвольное количество дней, замените на свою логику
-                    delivery_row["deliveries"].append(
-                        {"date": f"{day:02d}.01.2023", "store": f"Магазин {store_number}",
-                         "quantity": quantity_per_day})
-                store_deliveries.append(delivery_row)
+                store_deliveries.append({"product": product, "quantity_per_day": quantity_per_day})
 
-            delivery_data.extend(store_deliveries)
+            delivery_data.append({"store_number": store_number, "deliveries": store_deliveries})
 
         return delivery_data
 
