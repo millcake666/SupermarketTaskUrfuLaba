@@ -45,6 +45,9 @@ class MainWindow(QWidget):
         self.button_intensity = QPushButton('Настроить', self)
         self.button_intensity.clicked.connect(self.get_intensity)
 
+        self.label_speed = QLabel('Скорость обслуживания на 1 кассе (чел/мин):')
+        self.speed_input, _ = QInputDialog.getDouble(self, 'Скорость обслуживания', 'Введите скорость:', 60, 0, 999, 1)
+
         self.submit_button = QPushButton('Рассчитать', self)
         self.submit_button.clicked.connect(self.calculate_recommendations)
 
@@ -53,6 +56,7 @@ class MainWindow(QWidget):
         layout.addWidget(self.table_basket)
         layout.addWidget(self.label_intensity)
         layout.addWidget(self.button_intensity)
+        layout.addWidget(self.label_speed)
         layout.addWidget(self.submit_button)
 
         self.intensity_morning = 0
@@ -97,7 +101,8 @@ class MainWindow(QWidget):
         # Получаем данные о потребительской корзине
         basket_data = []
         for row in range(12):
-            row_data = [self.table_basket.item(row, col).text() if self.table_basket.item(row, col) else '' for col in range(7)]
+            row_data = [self.table_basket.item(row, col).text() if self.table_basket.item(row, col) else '' for col in
+                        range(7)]
             basket_data.append(row_data)
 
         # Проверяем, что все ячейки таблицы были заполнены
@@ -106,7 +111,8 @@ class MainWindow(QWidget):
             return
 
         # Здесь вы можете обработать введенные данные и выполнить расчеты
-        stock_volume, optimal_stock_size = self.calculate_stock_recommendations(basket_data)
+        speed_per_cashier = self.speed_input
+        stock_volume, optimal_stock_size = self.calculate_stock_recommendations(basket_data, speed_per_cashier)
         delivery_data = self.calculate_delivery_data(basket_data)
         cashiers_data = self.calculate_cashiers_recommendations(basket_data)
 
@@ -121,38 +127,13 @@ class MainWindow(QWidget):
         result_dialog = ResultDialog(result_text)
         result_dialog.exec_()
 
-    def show_warning(self, title, message):
-        # Вспомогательная функция для отображения предупреждения
-        QMessageBox.warning(self, title, message)
+    def calculate_stock_recommendations(self, basket_data, speed_per_cashier):
+        # Расчет рекомендуемого объема складов и страхового запаса
+        total_demand = sum(float(cell) for row in basket_data for cell in row)
+        stock_volume = total_demand * speed_per_cashier
+        optimal_stock_size = total_demand * speed_per_cashier / 2  # Замените на свой расчет
 
-    def calculate_stock_recommendations(self, basket_data):
-        # Пример расчета рекомендуемого объема складов и страхового запаса
-        # Здесь вы можете использовать ваши формулы и логику расчетов
-        stock_volume = 10000  # Замените на свой расчет
-        optimal_stock_size = 5000  # Замените на свой расчет
         return stock_volume, optimal_stock_size
-
-    def calculate_delivery_data(self, basket_data):
-        # Пример расчета графика и объема поставок каждого вида товаров по сети
-        # Здесь вы можете использовать ваши формулы и логику расчетов
-        delivery_data = [
-            {"product": "А", "deliveries": [{"date": "01.01.2023", "store": "Магазин 1", "quantity": 100},
-                                             {"date": "02.01.2023", "store": "Магазин 2", "quantity": 150}]},
-            {"product": "Б", "deliveries": [{"date": "01.01.2023", "store": "Магазин 1", "quantity": 50},
-                                             {"date": "02.01.2023", "store": "Магазин 2", "quantity": 75}]},
-            # Замените на свои расчеты
-        ]
-        return delivery_data
-
-    def calculate_cashiers_recommendations(self, basket_data):
-        # Пример расчета рекомендуемого количества касс в каждом магазине
-        # Здесь вы можете использовать ваши формулы и логику расчетов
-        cashiers_data = [
-            {"store": "Магазин 1", "cashiers": 5},
-            {"store": "Магазин 2", "cashiers": 8},
-            # Замените на свои расчеты
-        ]
-        return cashiers_data
 
     def format_delivery_data(self, delivery_data):
         # Пример форматирования данных о поставках для вывода в виде таблицы
@@ -169,6 +150,35 @@ class MainWindow(QWidget):
         for data in cashiers_data:
             formatted_data += f"{data['store']}\t\t\t{data['cashiers']} касс\n"
         return formatted_data
+
+    def calculate_delivery_data(self, basket_data):
+        # Пример расчета графика и объема поставок каждого вида товаров по сети
+        # Здесь вы можете использовать ваши формулы и логику расчетов
+        delivery_data = []
+
+        for store_number in range(1, 13):
+            store_deliveries = []
+            for row, product in enumerate(["А", "Б", "В", "Г", "Д", "Е", "Ж"]):
+                delivery_row = {"product": product, "deliveries": []}
+                for day in range(1, 31):  # Здесь используется произвольное количество дней, замените на свою логику
+                    delivery_row["deliveries"].append(
+                        {"date": f"{day:02d}.01.2023", "store": f"Магазин {store_number}", "quantity": 100})
+                store_deliveries.append(delivery_row)
+
+            delivery_data.extend(store_deliveries)
+
+        return delivery_data
+
+    def calculate_cashiers_recommendations(self, basket_data):
+        # Пример расчета рекомендуемого количества касс в каждом магазине
+        # Здесь вы можете использовать ваши формулы и логику расчетов
+        cashiers_data = [{"store": f"Магазин {i}", "cashiers": i * 2} for i in range(1, 13)]
+
+        return cashiers_data
+
+    def show_warning(self, title, message):
+        # Вспомогательная функция для отображения предупреждения
+        QMessageBox.warning(self, title, message)
 
 
 if __name__ == '__main__':
