@@ -213,7 +213,7 @@ class MainWindow(QWidget):
 
         # Вывод результатов
         result_text = f"Рекомендуемый объем складов и страховой запас: {stock_volume:.2f}, {optimal_stock_size:.2f}\n\n"
-        result_text += "График и объем поставок каждого вида товаров по сети:\n"
+        result_text += "График и объем поставок каждого вида товаров по сети в течение двух месяцев:\n"
         result_text += self.format_delivery_data(delivery_data)
         result_text += "\n\nРекомендуемое количество касс в каждом магазине:\n"
         result_text += self.format_cashiers_data(cashiers_data)
